@@ -131,7 +131,7 @@ th,td{padding:8px}
 <div class="modal-body">
 <p><strong>Atenção!</strong> Você está prestes a salvar os dados na Base.</p>
 <div class="warning">
-<i class="fas fa-shield-alt"></i> Sistema de Proteção Ativado: Apenas dados do seu Supervisor e Aba serão salvos.
+<i class="fas fa-shield-alt"></i> Os registros de hoje para este Supervisor/Aba serão <strong>substituídos</strong> pelos dados atuais da lista.
 </div>
 <div class="info-item">
 <span><strong>Supervisor:</strong></span>
@@ -159,422 +159,503 @@ let aba='';
 let adicionando={};
 let salvando=false;
 
+// CORREÇÃO BUG 3: Estrutura de dados em memória espelha o que está na tabela.
+// Em vez de ler innerText das células (frágil), mantemos um mapa de objetos.
+// Chave: matrícula → { matricula, nome, funcao, status, desvio }
+const bufferMemoria = {};
+
 function initializeData(){
-supervisor=sessionStorage.getItem('usuario')||'';
-aba=sessionStorage.getItem('abaSelecionada')||'';
-if(supervisor)document.getElementById('supervisorName').textContent=supervisor;
-if(aba)document.getElementById('areaSelecionada').textContent=aba;
-return supervisor&&aba;
+  supervisor=sessionStorage.getItem('usuario')||'';
+  aba=sessionStorage.getItem('abaSelecionada')||'';
+  if(supervisor)document.getElementById('supervisorName').textContent=supervisor;
+  if(aba)document.getElementById('areaSelecionada').textContent=aba;
+  return supervisor&&aba;
 }
 
 async function buscar(){
-const filtro=document.getElementById("filtro").value.trim();
-if(!filtro){
-showStatus('Digite algo para buscar','error');
-return;
-}
-const btnBuscar=document.getElementById('btnBuscar');
-const originalText=btnBuscar.innerHTML;
-btnBuscar.innerHTML='<i class="fas fa-spinner loading-spinner"></i> Buscando...';
-btnBuscar.disabled=true;
-try{
-const response=await fetch(`/api/colaboradores?filtro=${encodeURIComponent(filtro)}`);
-const data=await response.json();
-if(response.ok){
-exibirBusca(data||[]);
-if(data.length===0)showStatus('Nenhum colaborador encontrado','error');
-}else{
-throw new Error(data.error||'Erro ao buscar');
-}
-}catch(error){
-console.error('Erro na busca:',error);
-showStatus('Erro ao buscar colaboradores','error');
-}finally{
-btnBuscar.innerHTML=originalText;
-btnBuscar.disabled=false;
-}
+  const filtro=document.getElementById("filtro").value.trim();
+  if(!filtro){
+    showStatus('Digite algo para buscar','error');
+    return;
+  }
+  const btnBuscar=document.getElementById('btnBuscar');
+  const originalText=btnBuscar.innerHTML;
+  btnBuscar.innerHTML='<i class="fas fa-spinner loading-spinner"></i> Buscando...';
+  btnBuscar.disabled=true;
+  try{
+    const response=await fetch(`/api/colaboradores?filtro=${encodeURIComponent(filtro)}`);
+    const data=await response.json();
+    if(response.ok){
+      exibirBusca(data||[]);
+      if(data.length===0)showStatus('Nenhum colaborador encontrado','error');
+    }else{
+      throw new Error(data.error||'Erro ao buscar');
+    }
+  }catch(error){
+    console.error('Erro na busca:',error);
+    showStatus('Erro ao buscar colaboradores','error');
+  }finally{
+    btnBuscar.innerHTML=originalText;
+    btnBuscar.disabled=false;
+  }
 }
 
 function limparBusca(){
-document.getElementById("filtro").value="";
-document.getElementById("resultado").innerHTML="";
+  document.getElementById("filtro").value="";
+  document.getElementById("resultado").innerHTML="";
 }
 
 function exibirBusca(lista){
-const div=document.getElementById("resultado");
-if(!lista||lista.length===0){
-div.innerHTML='<div class="section empty-state">Nenhum colaborador encontrado</div>';
-return;
-}
-const grupos={};
-lista.forEach(c=>{
-const f=c.funcao||"Sem Função";
-if(!grupos[f])grupos[f]=[];
-grupos[f].push(c);
-});
-Object.keys(grupos).forEach(f=>
-grupos[f].sort((a,b)=>a.nome.localeCompare(b.nome,'pt-BR'))
-);
-const funcoesOrdenadas=Object.keys(grupos).sort((a,b)=>a.localeCompare(b,'pt-BR'));
-div.innerHTML="";
-funcoesOrdenadas.forEach(funcao=>{
-const section=document.createElement('div');
-section.className='section';
-section.innerHTML=`
-<h3><i class="fas fa-users"></i> ${funcao} (${grupos[funcao].length})</h3>
-<div class="grupo-funcao" id="grupo-${funcao.replace(/\s+/g,'-')}"></div>
-`;
-const grupoDiv=section.querySelector('.grupo-funcao');
-grupos[funcao].forEach(c=>{
-const item=document.createElement('div');
-item.className='item-res';
-item.innerHTML=`
-<div class="item-info">
-<strong>${c.matricula}</strong> - ${c.nome}
-</div>
-<button class="btn-primary" onclick='add("${c.matricula}","${c.nome.replace(/"/g,'&quot;')}","${(c.funcao||"").replace(/"/g,'&quot;')}");'>
-<i class="fas fa-plus"></i> Adicionar
-</button>
-`;
-grupoDiv.appendChild(item);
-});
-div.appendChild(section);
-});
+  const div=document.getElementById("resultado");
+  if(!lista||lista.length===0){
+    div.innerHTML='<div class="section empty-state">Nenhum colaborador encontrado</div>';
+    return;
+  }
+  const grupos={};
+  lista.forEach(c=>{
+    const f=c.funcao||"Sem Função";
+    if(!grupos[f])grupos[f]=[];
+    grupos[f].push(c);
+  });
+  Object.keys(grupos).forEach(f=>
+    grupos[f].sort((a,b)=>a.nome.localeCompare(b.nome,'pt-BR'))
+  );
+  const funcoesOrdenadas=Object.keys(grupos).sort((a,b)=>a.localeCompare(b,'pt-BR'));
+  div.innerHTML="";
+  funcoesOrdenadas.forEach(funcao=>{
+    const section=document.createElement('div');
+    section.className='section';
+    section.innerHTML=`
+      <h3><i class="fas fa-users"></i> ${funcao} (${grupos[funcao].length})</h3>
+      <div class="grupo-funcao" id="grupo-${funcao.replace(/\s+/g,'-')}"></div>
+    `;
+    const grupoDiv=section.querySelector('.grupo-funcao');
+    grupos[funcao].forEach(c=>{
+      const item=document.createElement('div');
+      item.className='item-res';
+      item.innerHTML=`
+        <div class="item-info">
+          <strong>${c.matricula}</strong> - ${c.nome}
+        </div>
+        <button class="btn-primary" onclick='add(${JSON.stringify(c.matricula)},${JSON.stringify(c.nome)},${JSON.stringify(c.funcao||"")})'>
+          <i class="fas fa-plus"></i> Adicionar
+        </button>
+      `;
+      grupoDiv.appendChild(item);
+    });
+    div.appendChild(section);
+  });
 }
 
 async function add(matricula,nome,funcao){
-if(adicionando[matricula])return;
-adicionando[matricula]=true;
-const buttons=document.querySelectorAll(`button[onclick*="${matricula}"]`);
-buttons.forEach(btn=>{
-btn.innerHTML='<i class="fas fa-spinner loading-spinner"></i> Adicionando...';
-btn.disabled=true;
-});
-try{
-const response=await fetch('/api/colaboradores',{
-method:'POST',
-headers:{'Content-Type':'application/json'},
-body:JSON.stringify({
-action:'addBuffer',
-supervisor:supervisor,
-aba:aba,
-colaborador:{matricula,nome,funcao}
-})
-});
-const result=await response.json();
-if(result.ok){
-buttons.forEach(btn=>{
-btn.innerHTML='<i class="fas fa-check"></i> Adicionado!';
-btn.style.background='#4caf50';
-setTimeout(()=>{
-btn.innerHTML='<i class="fas fa-plus"></i> Adicionar';
-btn.style.background='';
-btn.disabled=false;
-},2000);
-});
-atualizarTabela();
-showStatus(`Colaborador ${nome} adicionado com sucesso!`,'success');
-}else{
-throw new Error(result.msg||"Erro ao adicionar colaborador");
-}
-}catch(error){
-console.error('Erro ao adicionar:',error);
-showStatus('Erro ao adicionar colaborador','error');
-buttons.forEach(btn=>{
-btn.innerHTML='<i class="fas fa-plus"></i> Adicionar';
-btn.disabled=false;
-});
-}finally{
-adicionando[matricula]=false;
-}
+  if(adicionando[matricula])return;
+  adicionando[matricula]=true;
+
+  // Busca todos os botões referentes a esta matrícula usando data-attribute
+  const allBtns = document.querySelectorAll(`[data-mat="${matricula}"]`);
+  const buttons=document.querySelectorAll(`button[onclick*="${matricula}"]`);
+  buttons.forEach(btn=>{
+    btn.innerHTML='<i class="fas fa-spinner loading-spinner"></i> Adicionando...';
+    btn.disabled=true;
+  });
+  try{
+    const response=await fetch('/api/colaboradores',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        action:'addBuffer',
+        supervisor:supervisor,
+        aba:aba,
+        colaborador:{matricula,nome,funcao}
+      })
+    });
+    const result=await response.json();
+    if(result.ok){
+      buttons.forEach(btn=>{
+        btn.innerHTML='<i class="fas fa-check"></i> Adicionado!';
+        btn.style.background='#4caf50';
+        setTimeout(()=>{
+          btn.innerHTML='<i class="fas fa-plus"></i> Adicionar';
+          btn.style.background='';
+          btn.disabled=false;
+        },2000);
+      });
+      atualizarTabela();
+      showStatus(`Colaborador ${nome} adicionado com sucesso!`,'success');
+    }else{
+      throw new Error(result.msg||"Erro ao adicionar colaborador");
+    }
+  }catch(error){
+    console.error('Erro ao adicionar:',error);
+    showStatus('Erro ao adicionar colaborador','error');
+    buttons.forEach(btn=>{
+      btn.innerHTML='<i class="fas fa-plus"></i> Adicionar';
+      btn.disabled=false;
+    });
+  }finally{
+    adicionando[matricula]=false;
+  }
 }
 
 async function atualizarTabela(){
-try{
-const response=await fetch('/api/colaboradores',{
-method:'POST',
-headers:{'Content-Type':'application/json'},
-body:JSON.stringify({
-action:'getBuffer',
-supervisor:supervisor,
-aba:aba
-})
-});
-const data=await response.json();
-if(response.ok){
-renderTabela(data||[]);
-}else{
-console.error('Erro ao carregar buffer:',data.error);
-showStatus('Erro ao carregar lista de colaboradores','error');
-}
-}catch(error){
-console.error('Erro ao atualizar tabela:',error);
-showStatus('Erro de conexão ao carregar dados','error');
-}
+  try{
+    const response=await fetch('/api/colaboradores',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        action:'getBuffer',
+        supervisor:supervisor,
+        aba:aba
+      })
+    });
+    const data=await response.json();
+    if(response.ok){
+      const lista = data || [];
+      // CORREÇÃO BUG 3: Atualiza o mapa em memória com os dados vindos da API
+      // (fonte de verdade = servidor, não o DOM)
+      Object.keys(bufferMemoria).forEach(k => delete bufferMemoria[k]);
+      lista.forEach(c => {
+        bufferMemoria[c.matricula] = {
+          matricula: c.matricula,
+          nome:      c.nome,
+          funcao:    c.funcao || '',
+          status:    c.status || '',
+          desvio:    c.desvio || ''
+        };
+      });
+      renderTabela(lista);
+    }else{
+      console.error('Erro ao carregar buffer:',data.error);
+      showStatus('Erro ao carregar lista de colaboradores','error');
+    }
+  }catch(error){
+    console.error('Erro ao atualizar tabela:',error);
+    showStatus('Erro de conexão ao carregar dados','error');
+  }
 }
 
 function statusToClass(status){
-const classes={
-"Presente":"statusPresente",
-"Ausente":"statusAusente",
-"Afastado":"statusAfastado",
-"Atestado":"statusAtestado",
-"Férias":"statusFerias",
-"Folga":"statusFolga",
-"Abandono":"statusAbandono"
-};
-return classes[status]||"statusVazio";
+  const classes={
+    "Presente":"statusPresente",
+    "Ausente":"statusAusente",
+    "Afastado":"statusAfastado",
+    "Atestado":"statusAtestado",
+    "Férias":"statusFerias",
+    "Folga":"statusFolga",
+    "Abandono":"statusAbandono"
+  };
+  return classes[status]||"statusVazio";
 }
 
 function renderTabela(lista){
-const tbody=document.querySelector("#tabelaBuffer tbody");
-tbody.innerHTML="";
-if(!lista||lista.length===0){
-tbody.innerHTML=`
-<tr>
-<td colspan="5" class="empty-state">
-<i class="fas fa-info-circle"></i> Nenhum colaborador selecionado
-</td>
-</tr>`;
-return;
-}
-const grupos={};
-lista.forEach(c=>{
-const f=c.funcao||"Sem Função";
-if(!grupos[f])grupos[f]=[];
-grupos[f].push(c);
-});
-const funcoesOrdenadas=Object.keys(grupos).sort((a,b)=>a.localeCompare(b,'pt-BR'));
-funcoesOrdenadas.forEach(funcao=>{
-const trFuncao=document.createElement("tr");
-trFuncao.className="funcao-header";
-trFuncao.innerHTML=`
-<td colspan="5">
-<i class="fas fa-users"></i> ${funcao} (${grupos[funcao].length} colaboradores)
-</td>`;
-tbody.appendChild(trFuncao);
-grupos[funcao].sort((a,b)=>a.nome.localeCompare(b.nome,'pt-BR'));
-grupos[funcao].forEach(c=>{
-const tr=document.createElement("tr");
-tr.id=`linha_${c.matricula}`;
-tr.className=statusToClass(c.status||"");
-tr.dataset.funcao=c.funcao||"";
-tr.innerHTML=`
-<td><strong>${c.matricula}</strong></td>
-<td>${c.nome}</td>
-<td>
-<select onchange="atualizarStatus('${c.matricula}',this)" style="width:100%;">
-<option value="" ${!c.status?"selected":""}>-- Selecione --</option>
-<option value="Presente" ${c.status==="Presente"?"selected":""}>✅ Presente</option>
-<option value="Ausente" ${c.status==="Ausente"?"selected":""}>❌ Ausente</option>
-<option value="Atestado" ${c.status==="Atestado"?"selected":""}>📄 Atestado</option>
-<option value="Afastado" ${c.status==="Afastado"?"selected":""}>🏥 Afastado</option>
-<option value="Férias" ${c.status==="Férias"?"selected":""}>🏖️ Férias</option>
-<option value="Folga" ${c.status==="Folga"?"selected":""}>😴 Folga</option>
-<option value="Abandono" ${c.status==="Abandono"?"selected":""}>🚫 Abandono</option>
-</select>
-</td>
-<td>
-<select onchange="atualizarDesvio('${c.matricula}',this)" style="width:100%;">
-<option value="" ${!c.desvio?"selected":""}>-- Sem Desvio --</option>
-<option value="Desvio" ${c.desvio==="Desvio"?"selected":""}>🔄 Desvio</option>
-</select>
-</td>
-<td>
-<button class="btn-danger" onclick="remover('${c.matricula}')" title="Remover colaborador">
-<i class="fas fa-trash"></i> Remover
-</button>
-</td>
-`;
-tbody.appendChild(tr);
-});
-});
+  const tbody=document.querySelector("#tabelaBuffer tbody");
+  tbody.innerHTML="";
+  if(!lista||lista.length===0){
+    tbody.innerHTML=`
+      <tr>
+        <td colspan="5" class="empty-state">
+          <i class="fas fa-info-circle"></i> Nenhum colaborador selecionado
+        </td>
+      </tr>`;
+    return;
+  }
+  const grupos={};
+  lista.forEach(c=>{
+    const f=c.funcao||"Sem Função";
+    if(!grupos[f])grupos[f]=[];
+    grupos[f].push(c);
+  });
+  const funcoesOrdenadas=Object.keys(grupos).sort((a,b)=>a.localeCompare(b,'pt-BR'));
+  funcoesOrdenadas.forEach(funcao=>{
+    const trFuncao=document.createElement("tr");
+    trFuncao.className="funcao-header";
+    trFuncao.innerHTML=`
+      <td colspan="5">
+        <i class="fas fa-users"></i> ${funcao} (${grupos[funcao].length} colaboradores)
+      </td>`;
+    tbody.appendChild(trFuncao);
+    grupos[funcao].sort((a,b)=>a.nome.localeCompare(b.nome,'pt-BR'));
+    grupos[funcao].forEach(c=>{
+      const tr=document.createElement("tr");
+      tr.id=`linha_${c.matricula}`;
+      tr.className=statusToClass(c.status||"");
+
+      // CORREÇÃO BUG 3: guarda dados em data-attributes para leitura segura
+      // sem depender de innerText que pode ter espaços/quebras extras
+      tr.dataset.matricula = c.matricula;
+      tr.dataset.nome      = c.nome;
+      tr.dataset.funcao    = c.funcao || '';
+      tr.dataset.status    = c.status || '';
+      tr.dataset.desvio    = c.desvio || '';
+
+      tr.innerHTML=`
+        <td><strong>${c.matricula}</strong></td>
+        <td>${c.nome}</td>
+        <td>
+          <select onchange="atualizarStatus('${c.matricula}',this)" style="width:100%;">
+            <option value="" ${!c.status?"selected":""}>-- Selecione --</option>
+            <option value="Presente" ${c.status==="Presente"?"selected":""}>✅ Presente</option>
+            <option value="Ausente" ${c.status==="Ausente"?"selected":""}>❌ Ausente</option>
+            <option value="Atestado" ${c.status==="Atestado"?"selected":""}>📄 Atestado</option>
+            <option value="Afastado" ${c.status==="Afastado"?"selected":""}>🏥 Afastado</option>
+            <option value="Férias" ${c.status==="Férias"?"selected":""}>🏖️ Férias</option>
+            <option value="Folga" ${c.status==="Folga"?"selected":""}>😴 Folga</option>
+            <option value="Abandono" ${c.status==="Abandono"?"selected":""}>🚫 Abandono</option>
+          </select>
+        </td>
+        <td>
+          <select onchange="atualizarDesvio('${c.matricula}',this)" style="width:100%;">
+            <option value="" ${!c.desvio?"selected":""}>-- Sem Desvio --</option>
+            <option value="Desvio" ${c.desvio==="Desvio"?"selected":""}>🔄 Desvio</option>
+          </select>
+        </td>
+        <td>
+          <button class="btn-danger" onclick="remover('${c.matricula}')" title="Remover colaborador">
+            <i class="fas fa-trash"></i> Remover
+          </button>
+        </td>
+      `;
+      tbody.appendChild(tr);
+    });
+  });
 }
 
 async function atualizarStatus(matricula,selectEl){
-const novoStatus=selectEl.value;
-const tr=document.getElementById(`linha_${matricula}`);
-if(tr)tr.className=statusToClass(novoStatus);
-try{
-await fetch('/api/colaboradores',{
-method:'POST',
-headers:{'Content-Type':'application/json'},
-body:JSON.stringify({
-action:'updateStatus',
-supervisor:supervisor,
-matricula:matricula,
-status:novoStatus
-})
-});
-showStatus(`Status atualizado: ${novoStatus||'Vazio'}`,'success');
-}catch(error){
-console.error('Erro ao atualizar status:',error);
-showStatus('Erro ao atualizar status','error');
-}
+  const novoStatus=selectEl.value;
+  const tr=document.getElementById(`linha_${matricula}`);
+  if(tr){
+    tr.className=statusToClass(novoStatus);
+    // CORREÇÃO BUG 3: atualiza o mapa em memória junto com o DOM
+    tr.dataset.status = novoStatus;
+  }
+  if(bufferMemoria[matricula]) bufferMemoria[matricula].status = novoStatus;
+
+  try{
+    await fetch('/api/colaboradores',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        action:'updateStatus',
+        supervisor:supervisor,
+        matricula:matricula,
+        status:novoStatus
+      })
+    });
+    showStatus(`Status atualizado: ${novoStatus||'Vazio'}`,'success');
+  }catch(error){
+    console.error('Erro ao atualizar status:',error);
+    showStatus('Erro ao atualizar status','error');
+  }
 }
 
 async function atualizarDesvio(matricula,selectEl){
-const novoDesvio=selectEl.value;
-try{
-await fetch('/api/colaboradores',{
-method:'POST',
-headers:{'Content-Type':'application/json'},
-body:JSON.stringify({
-action:'updateDesvio',
-supervisor:supervisor,
-matricula:matricula,
-desvio:novoDesvio
-})
-});
-showStatus(`Desvio atualizado: ${novoDesvio||'Sem Desvio'}`,'success');
-}catch(error){
-console.error('Erro ao atualizar desvio:',error);
-showStatus('Erro ao atualizar desvio','error');
-}
+  const novoDesvio=selectEl.value;
+  const tr=document.getElementById(`linha_${matricula}`);
+  if(tr) tr.dataset.desvio = novoDesvio;
+  if(bufferMemoria[matricula]) bufferMemoria[matricula].desvio = novoDesvio;
+
+  try{
+    await fetch('/api/colaboradores',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        action:'updateDesvio',
+        supervisor:supervisor,
+        matricula:matricula,
+        desvio:novoDesvio
+      })
+    });
+    showStatus(`Desvio atualizado: ${novoDesvio||'Sem Desvio'}`,'success');
+  }catch(error){
+    console.error('Erro ao atualizar desvio:',error);
+    showStatus('Erro ao atualizar desvio','error');
+  }
 }
 
 async function remover(matricula){
-if(!confirm("Tem certeza que deseja remover este colaborador da lista?"))return;
-try{
-const response=await fetch('/api/colaboradores',{
-method:'POST',
-headers:{'Content-Type':'application/json'},
-body:JSON.stringify({
-action:'removeBuffer',
-supervisor:supervisor,
-matricula:matricula
-})
-});
-const result=await response.json();
-if(result.ok){
-const tr=document.getElementById(`linha_${matricula}`);
-if(tr){
-tr.style.transition='opacity 0.3s';
-tr.style.opacity='0';
-setTimeout(()=>tr.remove(),300);
-}
-showStatus('Colaborador removido com sucesso','success');
-setTimeout(()=>{
-const tbody=document.querySelector("#tabelaBuffer tbody");
-const dataRows=tbody.querySelectorAll('tr[id^="linha_"]');
-if(dataRows.length===0){
-tbody.innerHTML=`
-<tr>
-<td colspan="5" class="empty-state">
-<i class="fas fa-info-circle"></i> Nenhum colaborador selecionado
-</td>
-</tr>`;
-}
-},350);
-}else{
-throw new Error(result.msg||"Erro ao remover colaborador");
-}
-}catch(error){
-console.error('Erro ao remover:',error);
-showStatus('Erro ao remover colaborador','error');
-}
+  if(!confirm("Tem certeza que deseja remover este colaborador da lista?"))return;
+  try{
+    const response=await fetch('/api/colaboradores',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        action:'removeBuffer',
+        supervisor:supervisor,
+        matricula:matricula
+      })
+    });
+    const result=await response.json();
+    if(result.ok){
+      // Remove do mapa em memória
+      delete bufferMemoria[matricula];
+
+      const tr=document.getElementById(`linha_${matricula}`);
+      if(tr){
+        tr.style.transition='opacity 0.3s';
+        tr.style.opacity='0';
+        setTimeout(()=>tr.remove(),300);
+      }
+      showStatus('Colaborador removido com sucesso','success');
+      setTimeout(()=>{
+        const tbody=document.querySelector("#tabelaBuffer tbody");
+        const dataRows=tbody.querySelectorAll('tr[id^="linha_"]');
+        if(dataRows.length===0){
+          tbody.innerHTML=`
+            <tr>
+              <td colspan="5" class="empty-state">
+                <i class="fas fa-info-circle"></i> Nenhum colaborador selecionado
+              </td>
+            </tr>`;
+        }
+      },350);
+    }else{
+      throw new Error(result.msg||"Erro ao remover colaborador");
+    }
+  }catch(error){
+    console.error('Erro ao remover:',error);
+    showStatus('Erro ao remover colaborador','error');
+  }
 }
 
 function salvarBuffer(){
-if(salvando)return;
-const linhas=document.querySelectorAll("#tabelaBuffer tbody tr[id^='linha_']");
-if(linhas.length===0){
-showStatus('Nenhum colaborador para salvar','error');
-return;
-}
-document.getElementById('confirmSupervisor').textContent=supervisor;
-document.getElementById('confirmAba').textContent=aba;
-document.getElementById('confirmTotal').textContent=linhas.length;
-document.getElementById('modalConfirm').classList.add('active');
+  if(salvando)return;
+
+  // CORREÇÃO BUG 3: conta a partir do mapa em memória, não do DOM
+  const totalColabs = Object.keys(bufferMemoria).length;
+  if(totalColabs===0){
+    showStatus('Nenhum colaborador para salvar','error');
+    return;
+  }
+  document.getElementById('confirmSupervisor').textContent=supervisor;
+  document.getElementById('confirmAba').textContent=aba;
+  document.getElementById('confirmTotal').textContent=totalColabs;
+  document.getElementById('modalConfirm').classList.add('active');
 }
 
 function fecharModal(){
-document.getElementById('modalConfirm').classList.remove('active');
+  document.getElementById('modalConfirm').classList.remove('active');
 }
 
 async function confirmarSalvar(){
-fecharModal();
-if(salvando)return;
-const linhas=document.querySelectorAll("#tabelaBuffer tbody tr[id^='linha_']");
-if(linhas.length===0){
-showStatus('Nenhum colaborador para salvar','error');
-return;
-}
-salvando=true;
-const statusEl=document.getElementById("statusSalvar");
-const btnSalvar=document.getElementById("btnSalvar");
-const originalText=btnSalvar.innerHTML;
-statusEl.innerHTML='<i class="fas fa-spinner loading-spinner"></i> Salvando...';
-statusEl.className='status-message status-loading';
-btnSalvar.innerHTML='<i class="fas fa-spinner loading-spinner"></i> Salvando...';
-btnSalvar.disabled=true;
-try{
-const dados=[];
-linhas.forEach(l=>{
-const matricula=l.children[0].innerText;
-const nome=l.children[1].innerText;
-const funcao=l.dataset.funcao||"";
-const selectStatus=l.querySelectorAll("select")[0];
-const status=selectStatus?selectStatus.value:"";
-const selectDesvio=l.querySelectorAll("select")[1];
-const desvio=selectDesvio?selectDesvio.value:"";
-dados.push([supervisor,aba,matricula,nome,funcao,status,desvio]);
-});
-const response=await fetch('/api/colaboradores',{
-method:'POST',
-headers:{'Content-Type':'application/json'},
-body:JSON.stringify({
-action:'saveToBase',
-dados:dados
-})
-});
-const result=await response.json();
-if(result.ok){
-statusEl.innerHTML=`<i class="fas fa-check"></i> ${result.msg}`;
-statusEl.className='status-message status-success';
-showStatus('Dados salvos com sucesso na planilha!','success');
-}else{
-throw new Error(result.msg||"Erro ao salvar");
-}
-}catch(error){
-console.error('Erro ao salvar:',error);
-statusEl.innerHTML='<i class="fas fa-exclamation-triangle"></i> Erro ao salvar';
-statusEl.className='status-message status-error';
-showStatus('Erro ao salvar dados','error');
-}finally{
-salvando=false;
-btnSalvar.innerHTML=originalText;
-btnSalvar.disabled=false;
-setTimeout(()=>{
-statusEl.innerHTML='';
-statusEl.className='status-message';
-},5000);
-}
+  fecharModal();
+  if(salvando)return;
+
+  // CORREÇÃO BUG 3: monta o array de dados a partir do mapa em memória
+  // em vez de ler innerText das células da tabela (que pode ter lixo)
+  const colaboradores = Object.values(bufferMemoria);
+  if(colaboradores.length===0){
+    showStatus('Nenhum colaborador para salvar','error');
+    return;
+  }
+
+  salvando=true;
+  const statusEl=document.getElementById("statusSalvar");
+  const btnSalvar=document.getElementById("btnSalvar");
+  const originalText=btnSalvar.innerHTML;
+  statusEl.innerHTML='<i class="fas fa-spinner loading-spinner"></i> Salvando...';
+  statusEl.className='status-message status-loading';
+  btnSalvar.innerHTML='<i class="fas fa-spinner loading-spinner"></i> Salvando...';
+  btnSalvar.disabled=true;
+
+  try{
+    // CORREÇÃO BUG 3: lê status e desvio diretamente do select no DOM
+    // e sincroniza com o mapa em memória antes de enviar
+    const dados = colaboradores.map(c => {
+      const tr = document.getElementById(`linha_${c.matricula}`);
+      let statusFinal = c.status;
+      let desvioFinal = c.desvio;
+
+      if(tr){
+        // Lê o valor atual do select de status (o usuário pode ter mudado sem acionar o evento)
+        const selStatus = tr.querySelector('select:nth-of-type(1)');
+        const selDesvio = tr.querySelector('select:nth-of-type(2)');
+        if(selStatus) statusFinal = selStatus.value;
+        if(selDesvio) desvioFinal = selDesvio.value;
+      }
+
+      return [
+        supervisor,           // [0] Supervisor
+        aba,                  // [1] Aba
+        c.matricula,          // [2] Matricula
+        c.nome,               // [3] Nome
+        c.funcao || '',       // [4] Função
+        statusFinal || '',    // [5] Status
+        desvioFinal || ''     // [6] Desvio
+      ];
+    });
+
+    console.log('[PAINEL] Enviando dados para salvar:', dados);
+
+    const response=await fetch('/api/colaboradores',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        action:'saveToBase',
+        dados:dados
+      })
+    });
+    const result=await response.json();
+    if(result.ok){
+      statusEl.innerHTML=`<i class="fas fa-check"></i> ${result.msg}`;
+      statusEl.className='status-message status-success';
+      showStatus('Dados salvos com sucesso na planilha!','success');
+    }else{
+      throw new Error(result.msg||"Erro ao salvar");
+    }
+  }catch(error){
+    console.error('Erro ao salvar:',error);
+    statusEl.innerHTML='<i class="fas fa-exclamation-triangle"></i> Erro ao salvar';
+    statusEl.className='status-message status-error';
+    showStatus('Erro ao salvar dados','error');
+  }finally{
+    salvando=false;
+    btnSalvar.innerHTML=originalText;
+    btnSalvar.disabled=false;
+    setTimeout(()=>{
+      statusEl.innerHTML='';
+      statusEl.className='status-message';
+    },5000);
+  }
 }
 
 function voltarMenu(){
-if(confirm("Tem certeza que deseja voltar ao menu? Dados não salvos serão perdidos.")){
-window.location.href="/menu";
-}
+  if(confirm("Tem certeza que deseja voltar ao menu? Dados não salvos serão perdidos.")){
+    window.location.href="/menu";
+  }
 }
 
 function showStatus(message,type){
-console.log(`Status [${type}]: ${message}`);
+  console.log(`Status [${type}]: ${message}`);
+  // Exibe feedback visual no topo da página por 4 segundos
+  let toastId = 'toast-status';
+  let toast = document.getElementById(toastId);
+  if(!toast){
+    toast = document.createElement('div');
+    toast.id = toastId;
+    toast.style.cssText = 'position:fixed;top:20px;right:20px;z-index:99999;padding:14px 22px;border-radius:10px;font-weight:600;font-size:15px;box-shadow:0 4px 16px rgba(0,0,0,0.18);transition:opacity 0.4s';
+    document.body.appendChild(toast);
+  }
+  const colors = { success:'#d4edda;color:#155724', error:'#f8d7da;color:#721c24', warning:'#fff3cd;color:#856404', info:'#d1ecf1;color:#0c5460' };
+  toast.style.cssText += `;background:${(colors[type]||colors.info).split(';')[0]};color:${(colors[type]||colors.info).split(';')[1]?.replace('color:','')}`;
+  toast.textContent = message;
+  toast.style.opacity = '1';
+  clearTimeout(toast._timer);
+  toast._timer = setTimeout(()=>{ toast.style.opacity='0'; },4000);
 }
 
 document.addEventListener('DOMContentLoaded',function(){
-document.getElementById('filtro').addEventListener('keypress',function(e){
-if(e.key==='Enter')buscar();
-});
+  document.getElementById('filtro').addEventListener('keypress',function(e){
+    if(e.key==='Enter')buscar();
+  });
 });
 
 window.onload=function(){
-if(!initializeData()){
-alert('Dados da sessão não encontrados. Redirecionando para login...');
-window.location.href='/';
-return;
-}
-atualizarTabela();
+  if(!initializeData()){
+    alert('Dados da sessão não encontrados. Redirecionando para login...');
+    window.location.href='/';
+    return;
+  }
+  atualizarTabela();
 };
 </script>
 </body>
