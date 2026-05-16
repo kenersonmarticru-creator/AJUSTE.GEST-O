@@ -1080,14 +1080,14 @@
       await carregarColaboradores();
       await carregarStatusColetores();
       
-      // Auto-refresh a cada 30 segundos
+      // Auto-refresh a cada 1 hora
       setInterval(() => {
         if (paginaAtual === 'coletores') {
           carregarStatusColetores();
         } else if (paginaAtual === 'chaves') {
           carregarStatusChaves();
         }
-      }, 30000);
+      }, 3600000);
       
       console.log('[SISTEMA] ✓ Aplicação inicializada');
     };
