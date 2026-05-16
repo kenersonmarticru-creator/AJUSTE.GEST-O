@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Controle de Coletores e Chaves RFID</title>
+  <script src="config.js"></script>
   <style>
     * {
       margin: 0;
@@ -520,7 +521,7 @@
 
   <script>
     // ===== CONFIGURAÇÃO GLOBAL =====
-    const API_URL = `${window.location.origin}/api/coletores`;
+    const API_URL = (window.API_BASE || window.location.origin)+'/api/coletores';
     
     console.log('[SISTEMA] URL da API:', API_URL);
     

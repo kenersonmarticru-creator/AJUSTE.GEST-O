@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Auditoria de Avaria</title>
+  <script src="config.js"></script>
   <style>
     * {
       margin: 0;
@@ -187,7 +188,7 @@
   // ===== CÓDIGO JAVASCRIPT CORRIGIDO PARA avaria.html =====
 // Substitua o <script> atual por este código
 
-const API_URL = '/api/avaria';
+const API_URL = (window.API_BASE||'')+'/api/avaria';
 let mapaBuscaLocal = {}; // ← SEMPRE objeto simples
 let produtosCarregados = false;
 

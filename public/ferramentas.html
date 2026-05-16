@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Ferramentas - Gestão Perlog</title>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <script src="config.js"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         
@@ -513,7 +514,7 @@
             if (!usuario || !area) {
                 showStatus('Sessão expirada. Redirecionando para o menu...', 'error');
                 setTimeout(() => {
-                    window.location.href = '/menu';
+                    window.location.href = 'menu.html';
                 }, 2000);
                 return false;
             }
@@ -532,14 +533,14 @@
             sessionStorage.setItem('abaSelecionada', area);
             
             const destinos = {
-                'painel': '/painel',
-                'qlp': '/qlp',
-                'producao': '/producao',
-                'resumo-base': '/resumo-base',
-                'mapacarga': '/mapacarga',
-                'alocacaobox': '/alocacaobox',
-                'resumo-equipamentos': '/resumo-equipamentos', 
-                'controle-coletores': '/controle-coletores'
+                'painel': 'painel.html',
+                'qlp': 'qlp.html',
+                'producao': 'producao.html',
+                'resumo-base': 'resumo-base.html',
+                'mapacarga': 'mapacarga.html',
+                'alocacaobox': 'alocacaobox.html',
+                'resumo-equipamentos': 'resumo-equipamentos.html',
+                'controle-coletores': 'controle-coletores.html'
             };
             
             const mensagens = {
@@ -590,7 +591,7 @@
             sessionStorage.setItem('abas', sessionStorage.getItem('abas'));
             
             setTimeout(() => {
-                window.location.href = '/menu';
+                window.location.href = 'menu.html';
             }, 500);
         }
 

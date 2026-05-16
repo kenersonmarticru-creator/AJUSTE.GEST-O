@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Resumo de Equipamentos - Gestão Perlog</title>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <script src="config.js"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         
@@ -378,7 +379,7 @@
                 <button class="btn btn-warning" onclick="window.print()">
                     <i class="fas fa-print"></i> Imprimir
                 </button>
-                <button class="btn btn-secondary" onclick="window.location.href='/controle-coletores'">
+                <button class="btn btn-secondary" onclick="window.location.href='controle-coletores.html'">
                     <i class="fas fa-arrow-left"></i> Voltar
                 </button>
             </div>
@@ -657,12 +658,13 @@
         }
 
         async function carregarDados() {
+            const _API = window.API_BASE || '';
             try {
                 document.getElementById('loadingDiv').style.display = 'block';
                 document.getElementById('contentDiv').style.display = 'none';
 
                 console.log('[RESUMO] Carregando dados da Base...');
-                const resBase = await fetch('/api/producao/resumo-base?modo=dados');
+                const resBase = await fetch(_API+'/api/producao/resumo-base?modo=dados');
                 const resultBase = await resBase.json();
                 
                 if (!resultBase.ok) throw new Error('Erro ao carregar Base');
@@ -670,7 +672,7 @@
                 console.log(`[RESUMO] Base: ${dadosBase.length} registros`);
 
                 console.log('[RESUMO] Carregando turnos...');
-                const resTurnos = await fetch('/api/producao/resumo-base?modo=dados');
+                const resTurnos = await fetch(_API+'/api/producao/resumo-base?modo=dados');
                 const resultTurnos = await resTurnos.json();
                 
                 if (resultTurnos.ok) {
@@ -699,7 +701,7 @@
                 console.log(`[RESUMO] Turnos: ${dadosTurnos.length} registros`);
 
                 console.log('[RESUMO] Carregando coletores...');
-                const resColetores = await fetch('/api/coletores?action=obterColetorStatus');
+                const resColetores = await fetch(_API+'/api/coletores?action=obterColetorStatus');
                 const resultColetores = await resColetores.json();
                 
                 if (resultColetores.ok) {
@@ -728,7 +730,7 @@
                 console.log(`[RESUMO] Coletores: ${dadosColetores.length} em uso`);
 
                 console.log('[RESUMO] Carregando chaves...');
-                const resChaves = await fetch('/api/coletores?action=obterChaveStatus');
+                const resChaves = await fetch(_API+'/api/coletores?action=obterChaveStatus');
                 const resultChaves = await resChaves.json();
                 
                 if (resultChaves.ok) {

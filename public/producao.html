@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Calculadora de Produtividade Hora</title>
 <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+<script src="config.js"></script>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 body{font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);min-height:100vh;padding:20px}
@@ -63,7 +64,7 @@ td{padding:10px 8px;font-size:12px;color:#333;white-space:nowrap}
 <div class="header-right">
 <button class="btn btn-success" onclick="calcularTudo()"><i class="fas fa-calculator"></i> Calcular</button>
 <button class="btn btn-warning" onclick="location.reload()"><i class="fas fa-sync-alt"></i> Atualizar</button>
-<button class="btn btn-secondary" onclick="window.location.href='/ferramentas'"><i class="fas fa-arrow-left"></i> Voltar</button>
+<button class="btn btn-secondary" onclick="window.location.href='ferramentas.html'"><i class="fas fa-arrow-left"></i> Voltar</button>
 </div>
 </div>
 <div class="filters-panel">
@@ -133,6 +134,7 @@ div.innerHTML=`<div class="alert alert-${type}"><i class="fas fa-${icons[type]}"
 setTimeout(()=>div.innerHTML='',5000);
 }
 async function carregarDados(){
+const _API=window.API_BASE||'';
 try{
 document.getElementById('loadingDiv').style.display='block';
 document.getElementById('contentDiv').style.display='none';
@@ -145,7 +147,7 @@ const dia=String(hoje.getDate()).padStart(2,'0');
 dataInput=`${ano}-${mes}-${dia}`;
 document.getElementById('dataReferencia').value=dataInput;
 }
-const resProdutividade=await fetch('/api/producao/dados?tipo=produtividade');
+const resProdutividade=await fetch(_API+'/api/producao/dados?tipo=produtividade');
 const resultProdutividade=await resProdutividade.json();
 if(resultProdutividade.ok&&resultProdutividade.dados){
 resultProdutividade.dados.forEach(p=>{
@@ -157,7 +159,7 @@ funcoesPermitidas.push(p.funcao);
 }else{
 throw new Error('Produtividade não encontrada');
 }
-let urlBase='/api/producao/resumo-base?modo=dados';
+let urlBase=_API+'/api/producao/resumo-base?modo=dados';
 const dataRef=document.getElementById('dataReferencia').value;
 if(dataRef){
 urlBase+=`&data=${dataRef}`;
@@ -168,7 +170,7 @@ if(!resultBase.ok){
 throw new Error(resultBase.msg||'Erro ao carregar Base');
 }
 dadosBase=resultBase.dados||[];
-const resQLP=await fetch('/api/qlp/quadro');
+const resQLP=await fetch(_API+'/api/qlp/quadro');
 const resultQLP=await resQLP.json();
 if(!resultQLP.ok){
 throw new Error('Erro ao carregar QLP');
@@ -355,7 +357,7 @@ window.onload=function(){
 const usuario=sessionStorage.getItem('usuario');
 if(!usuario){
 showStatus('Sessão expirada','error');
-setTimeout(()=>window.location.href='/',2000);
+setTimeout(()=>window.location.href='index.html',2000);
 return;
 }
 carregarDados();

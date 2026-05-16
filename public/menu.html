@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Menu - Gestão Perlog</title>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <script src="config.js"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         
@@ -240,7 +241,7 @@
             if (!usuarioLogado || !abasString) {
                 showStatus('<i class="fas fa-exclamation-triangle"></i> Sessão expirada. Redirecionando para login...', 'error');
                 setTimeout(() => {
-                    window.location.href = '/';
+                    window.location.href = 'index.html';
                 }, 2000);
                 return false;
             }
@@ -345,30 +346,28 @@
                 
                 // Áreas com acesso direto (ferramentas específicas)
                 if (areaLower.includes('qlp')) {
-                    window.location.href = '/qlp';
+                    window.location.href = 'qlp.html';
                 } else if (areaLower.includes('mapa de carga')) {
-                    window.location.href = '/mapacarga';
+                    window.location.href = 'mapacarga.html';
                 } else if (areaLower.includes('alocação box') || areaLower.includes('alocacao box')) {
-                    window.location.href = '/alocacaobox';
+                    window.location.href = 'alocacaobox.html';
                 } else if (areaLower.includes('coletor') || areaLower.includes('rfid')) {
-                    window.location.href = '/controle-coletores';
+                    window.location.href = 'controle-coletores.html';
                 } else if (areaLower.includes('avaria') || areaLower.includes('rfid')) {
-                    window.location.href = '/avaria';                    
+                    window.location.href = 'avaria.html';
                 } else if (areaLower.includes('painel equipamentos') || areaLower.includes('rfid')) {
-                    window.location.href = '/resumo-equipamentos';
-                } 
-                    
+                    window.location.href = 'resumo-equipamentos.html';
+                }
+
                 // Áreas com múltiplas ferramentas
                 else {
                     const areasComFerramentas = ['gestão', 'gestao'];
                     const temFerramentas = areasComFerramentas.some(area => areaLower.includes(area));
-                    
+
                     if (temFerramentas) {
-                        // Vai para página de seleção de ferramentas
-                        window.location.href = '/ferramentas';
+                        window.location.href = 'ferramentas.html';
                     } else {
-                        // Vai direto para o painel de presença
-                        window.location.href = '/painel';
+                        window.location.href = 'painel.html';
                     }
                 }
             }, 500);
@@ -377,7 +376,7 @@
         function sair() {
             if (confirm('Tem certeza que deseja sair do sistema?')) {
                 sessionStorage.clear();
-                window.location.href = '/';
+                window.location.href = 'index.html';
             }
         }
 
