@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <script>
+    // Redireciona para index.html mantendo o path como query param
+    var path = window.location.pathname;
+    var search = window.location.search;
+    var base = window.location.pathname.split('/').slice(0, -1).join('/') || '/';
+    window.location.replace(base + '/index.html' + (search ? search : ''));
+  </script>
+</head>
+<body></body>
+</html>

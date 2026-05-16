@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Gestão a vista - Login</title>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <script src="config.js"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         
@@ -192,7 +193,7 @@
         
 
     <script>
-        const API_BASE = window.location.origin;
+        const API_BASE = window.API_BASE || window.location.origin;
 
         function showStatus(message, type = 'info') {
             const statusEl = document.getElementById('loginStatus');
@@ -250,7 +251,7 @@
                     // Redireciona para o menu após um breve delay
                     setTimeout(() => {
                         console.log('Redirecionando para menu...');
-                        window.location.href = '/menu';
+                        window.location.href = 'menu.html';
                     }, 1000);
                     
                 } else {

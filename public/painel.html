@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Painel de Presença</title>
 <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+<script src="config.js"></script>
 <style>
 body{font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;margin:20px;background:#f4f6f8}
 .header{background:white;padding:20px;border-radius:12px;margin-bottom:25px;box-shadow:0 4px 12px rgba(0,0,0,0.1);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:15px}
@@ -154,6 +155,7 @@ th,td{padding:8px}
 </div>
 </div>
 <script>
+const _API = window.API_BASE || '';
 let supervisor='';
 let aba='';
 let adicionando={};
@@ -183,7 +185,7 @@ async function buscar(){
   btnBuscar.innerHTML='<i class="fas fa-spinner loading-spinner"></i> Buscando...';
   btnBuscar.disabled=true;
   try{
-    const response=await fetch(`/api/colaboradores?filtro=${encodeURIComponent(filtro)}`);
+    const response=await fetch(`${_API}/api/colaboradores?filtro=${encodeURIComponent(filtro)}`);
     const data=await response.json();
     if(response.ok){
       exibirBusca(data||[]);
@@ -259,7 +261,7 @@ async function add(matricula,nome,funcao){
     btn.disabled=true;
   });
   try{
-    const response=await fetch('/api/colaboradores',{
+    const response=await fetch(_API+'/api/colaboradores',{
       method:'POST',
       headers:{'Content-Type':'application/json'},
       body:JSON.stringify({
@@ -299,7 +301,7 @@ async function add(matricula,nome,funcao){
 
 async function atualizarTabela(){
   try{
-    const response=await fetch('/api/colaboradores',{
+    const response=await fetch(_API+'/api/colaboradores',{
       method:'POST',
       headers:{'Content-Type':'application/json'},
       body:JSON.stringify({
@@ -431,7 +433,7 @@ async function atualizarStatus(matricula,selectEl){
   if(bufferMemoria[matricula]) bufferMemoria[matricula].status = novoStatus;
 
   try{
-    await fetch('/api/colaboradores',{
+    await fetch(_API+'/api/colaboradores',{
       method:'POST',
       headers:{'Content-Type':'application/json'},
       body:JSON.stringify({
@@ -455,7 +457,7 @@ async function atualizarDesvio(matricula,selectEl){
   if(bufferMemoria[matricula]) bufferMemoria[matricula].desvio = novoDesvio;
 
   try{
-    await fetch('/api/colaboradores',{
+    await fetch(_API+'/api/colaboradores',{
       method:'POST',
       headers:{'Content-Type':'application/json'},
       body:JSON.stringify({
@@ -475,7 +477,7 @@ async function atualizarDesvio(matricula,selectEl){
 async function remover(matricula){
   if(!confirm("Tem certeza que deseja remover este colaborador da lista?"))return;
   try{
-    const response=await fetch('/api/colaboradores',{
+    const response=await fetch(_API+'/api/colaboradores',{
       method:'POST',
       headers:{'Content-Type':'application/json'},
       body:JSON.stringify({
@@ -586,7 +588,7 @@ async function confirmarSalvar(){
 
     console.log('[PAINEL] Enviando dados para salvar:', dados);
 
-    const response=await fetch('/api/colaboradores',{
+    const response=await fetch(_API+'/api/colaboradores',{
       method:'POST',
       headers:{'Content-Type':'application/json'},
       body:JSON.stringify({
@@ -620,7 +622,7 @@ async function confirmarSalvar(){
 
 function voltarMenu(){
   if(confirm("Tem certeza que deseja voltar ao menu? Dados não salvos serão perdidos.")){
-    window.location.href="/menu";
+    window.location.href="menu.html";
   }
 }
 
@@ -652,7 +654,7 @@ document.addEventListener('DOMContentLoaded',function(){
 window.onload=function(){
   if(!initializeData()){
     alert('Dados da sessão não encontrados. Redirecionando para login...');
-    window.location.href='/';
+    window.location.href='index.html';
     return;
   }
   atualizarTabela();
